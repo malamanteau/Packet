@@ -12,10 +12,14 @@
 #	define __packed
 #endif
 
+#ifdef _MSC_VER
+#	define __packed
+#endif
+
 // We can optimize calls to the conversion functions.  Either nothing has
 // to be done or we are using directly the byte-swapping functions which
 // often can be inlined.
-//# if __BYTE_ORDER == __BIG_ENDIAN
+# if __BYTE_ORDER == __BIG_ENDIAN
 // The host byte order is the same as network byte order,
 // so these functions are all just identity.
 #  define ntohl(x)   (x)
@@ -24,16 +28,16 @@
 #  define htonl(x)   (x)
 #  define htonll(x)  (x)
 #  define htons(x)   (x)
-//# else
-//#  if __BYTE_ORDER == __LITTLE_ENDIAN
-//#   define ntohll(x) __bswap_64 (x)
-//#   define ntohl(x)  __bswap_32 (x)
-//#   define ntohs(x)  __bswap_16 (x)
-//#   define htonll(x) __bswap_64 (x)
-//#   define htonl(x)  __bswap_32 (x)
-//#   define htons(x)  __bswap_16 (x)
-//#  endif
-//# endif
+# else
+#  if __BYTE_ORDER == __LITTLE_ENDIAN
+#   define ntohll(x) __bswap_64 (x)
+#   define ntohl(x)  __bswap_32 (x)
+#   define ntohs(x)  __bswap_16 (x)
+#   define htonll(x) __bswap_64 (x)
+#   define htonl(x)  __bswap_32 (x)
+#   define htons(x)  __bswap_16 (x)
+#  endif
+# endif
 
 /// If you would like the functions/classes in Packet 
 /// to be in a namespace, just define PACKET_NS 
@@ -41,7 +45,8 @@
 #ifdef PACKET_NS
 namespace PACKET_NS {
 #endif
-class alignas(4) Packet final
+
+class alignas(16) Packet final
 {
     // A bool-like type that cannot be converted to integer or pointer types
 	typedef bool(Packet::*BoolType)(size_t);
