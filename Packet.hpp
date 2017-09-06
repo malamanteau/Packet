@@ -35,7 +35,12 @@
 //#  endif
 //# endif
 
-
+/// If you would like the functions/classes in Packet 
+/// to be in a namespace, just define PACKET_NS 
+/// as your desired namespace name.
+#ifdef PACKET_NS
+namespace PACKET_NS {
+#endif
 class alignas(4) Packet final
 {
     // A bool-like type that cannot be converted to integer or pointer types
@@ -681,3 +686,7 @@ void Packet::Reserve(uint32_t size)
 {
 	m_data.reserve(size);
 }
+
+#ifdef PACKET_NS
+}
+#endif
