@@ -48,7 +48,7 @@ namespace PACKET_NS {
 
 class alignas(16) Packet final
 {
-    // A bool-like type that cannot be converted to integer or pointer types
+	// A bool-like type that cannot be converted to integer or pointer types
 	typedef bool(Packet::*BoolType)(size_t);
 
 public:
@@ -96,7 +96,7 @@ public:
 	Packet &            operator >>(std::wstring & data);
 	
 	template <typename T,
-		      typename = std::enable_if<std::is_enum<T>::value>>
+			  typename = std::enable_if<std::is_enum<T>::value>>
 	Packet &            operator >>(T & data)
 	{
 		typename std::underlying_type<T>::type temp;
@@ -122,7 +122,7 @@ public:
 	Packet &            operator <<(const std::wstring & data);
 	
 	template <typename T,
-		      typename = std::enable_if<std::is_enum<T>::value>>
+			  typename = std::enable_if<std::is_enum<T>::value>>
 	Packet &            operator <<(T data)
 	{
 		*this << static_cast<typename std::underlying_type<T>::type>(data);
@@ -341,17 +341,17 @@ Packet & Packet::operator >>(int64_t& data)
 {
 	if (checkSize(sizeof(data)))
 	{
-	    // Since ntohll is not available everywhere, we have to convert
-	    // to network byte order (big endian) manually
+		// Since ntohll is not available everywhere, we have to convert
+		// to network byte order (big endian) manually
 		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
 		data = (static_cast<int64_t>(bytes[0]) << 56) |
-		       (static_cast<int64_t>(bytes[1]) << 48) |
-		       (static_cast<int64_t>(bytes[2]) << 40) |
-		       (static_cast<int64_t>(bytes[3]) << 32) |
-		       (static_cast<int64_t>(bytes[4]) << 24) |
-		       (static_cast<int64_t>(bytes[5]) << 16) |
-		       (static_cast<int64_t>(bytes[6]) <<  8) |
-		       (static_cast<int64_t>(bytes[7]));
+			   (static_cast<int64_t>(bytes[1]) << 48) |
+			   (static_cast<int64_t>(bytes[2]) << 40) |
+			   (static_cast<int64_t>(bytes[3]) << 32) |
+			   (static_cast<int64_t>(bytes[4]) << 24) |
+			   (static_cast<int64_t>(bytes[5]) << 16) |
+			   (static_cast<int64_t>(bytes[6]) <<  8) |
+			   (static_cast<int64_t>(bytes[7]));
 		m_readPos += sizeof(data);
 	}
 
@@ -363,17 +363,17 @@ Packet & Packet::operator >>(uint64_t& data)
 {
 	if (checkSize(sizeof(data)))
 	{
-	    // Since ntohll is not available everywhere, we have to convert
-	    // to network byte order (big endian) manually
+		// Since ntohll is not available everywhere, we have to convert
+		// to network byte order (big endian) manually
 		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
 		data = (static_cast<uint64_t>(bytes[0]) << 56) |
-		       (static_cast<uint64_t>(bytes[1]) << 48) |
-		       (static_cast<uint64_t>(bytes[2]) << 40) |
-		       (static_cast<uint64_t>(bytes[3]) << 32) |
-		       (static_cast<uint64_t>(bytes[4]) << 24) |
-		       (static_cast<uint64_t>(bytes[5]) << 16) |
-		       (static_cast<uint64_t>(bytes[6]) <<  8) |
-		       (static_cast<uint64_t>(bytes[7]));
+			   (static_cast<uint64_t>(bytes[1]) << 48) |
+			   (static_cast<uint64_t>(bytes[2]) << 40) |
+			   (static_cast<uint64_t>(bytes[3]) << 32) |
+			   (static_cast<uint64_t>(bytes[4]) << 24) |
+			   (static_cast<uint64_t>(bytes[5]) << 16) |
+			   (static_cast<uint64_t>(bytes[6]) <<  8) |
+			   (static_cast<uint64_t>(bytes[7]));
 		m_readPos += sizeof(data);
 	}
 
@@ -409,7 +409,7 @@ Packet & Packet::operator >>(double & data)
 inline
 Packet & Packet::operator >>(char * data)
 {
-    // First extract string length
+	// First extract string length
 	uint32_t length = 0;
 	*this >> length;
 
@@ -444,13 +444,13 @@ Packet & Packet::operator >>(std::string & data)
 inline
 Packet & Packet::operator >>(wchar_t * data)
 {
-    // First extract string length
+	// First extract string length
 	uint32_t length = 0;
 	*this >> length;
 
 	if ((length > 0) && checkSize(length * sizeof(uint32_t)))
 	{
-	    // Then extract characters
+		// Then extract characters
 		for (uint32_t i = 0; i < length; ++i)
 		{
 			uint32_t character = 0;
@@ -466,14 +466,14 @@ Packet & Packet::operator >>(wchar_t * data)
 inline
 Packet & Packet::operator >>(std::wstring & data)
 {
-    // First extract string length
+	// First extract string length
 	uint32_t length = 0;
 	*this >> length;
 
 	data.clear();
 	if ((length > 0) && checkSize(length * sizeof(uint32_t)))
 	{
-	    // Then extract characters
+		// Then extract characters
 		for (uint32_t i = 0; i < length; ++i)
 		{
 			uint32_t character = 0;
@@ -561,8 +561,8 @@ inline
 inline
 Packet & Packet::operator <<(int64_t data)
 {
-    // Since htonll is not available everywhere, we have to convert
-    // to network byte order (big endian) manually
+	// Since htonll is not available everywhere, we have to convert
+	// to network byte order (big endian) manually
 	uint8_t toWrite[] =
 	{
 		static_cast<uint8_t>((data >> 56) & 0xFF),
@@ -581,8 +581,8 @@ Packet & Packet::operator <<(int64_t data)
 inline
 Packet & Packet::operator <<(uint64_t data)
 {
-    // Since htonll is not available everywhere, we have to convert
-    // to network byte order (big endian) manually
+	// Since htonll is not available everywhere, we have to convert
+	// to network byte order (big endian) manually
 	uint8_t toWrite[] =
 	{
 		static_cast<uint8_t>((data >> 56) & 0xFF),
@@ -617,11 +617,11 @@ Packet & Packet::operator <<(double data)
 inline
 Packet & Packet::operator <<(const char* data)
 {
-    // First insert string length
+	// First insert string length
 	uint32_t length = static_cast<uint32_t>(std::strlen(data));
 	*this << length;
 
-	    // Then insert characters
+		// Then insert characters
 	Append(data, length * sizeof(char));
 
 	return *this;
@@ -630,11 +630,11 @@ Packet & Packet::operator <<(const char* data)
 inline
 Packet & Packet::operator <<(const std::string& data)
 {
-    // First insert string length
+	// First insert string length
 	uint32_t length = static_cast<uint32_t>(data.size());
 	*this << length;
 
-	    // Then insert characters
+		// Then insert characters
 	if (length > 0)
 		Append(data.c_str(), length * sizeof(std::string::value_type));
 
@@ -644,11 +644,11 @@ Packet & Packet::operator <<(const std::string& data)
 inline
 Packet & Packet::operator <<(const wchar_t* data)
 {
-    // First insert string length
+	// First insert string length
 	uint32_t length = static_cast<uint32_t>(std::wcslen(data));
 	*this << length;
 
-	    // Then insert characters
+		// Then insert characters
 	for (const wchar_t* c = data; *c != L'\0'; ++c)
 		*this << static_cast<uint32_t>(*c);
 
@@ -658,11 +658,11 @@ Packet & Packet::operator <<(const wchar_t* data)
 inline
 Packet & Packet::operator <<(const std::wstring& data)
 {
-    // First insert string length
+	// First insert string length
 	uint32_t length = static_cast<uint32_t>(data.size());
 	*this << length;
 
-	    // Then insert characters
+		// Then insert characters
 	if (length > 0)
 	{
 		for (std::wstring::const_iterator c = data.begin(); c != data.end(); ++c)
