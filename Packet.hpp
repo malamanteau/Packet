@@ -97,7 +97,7 @@ public:
 	
 	template <typename T,
 			  typename = std::enable_if<std::is_enum<T>::value>>
-	Packet &            operator >>(T & data)
+	void            operator >>(T & data)
 	{
 		typename std::underlying_type<T>::type temp;
 		*this >> temp;
@@ -126,6 +126,7 @@ public:
 	Packet &            operator <<(T data)
 	{
 		*this << static_cast<typename std::underlying_type<T>::type>(data);
+		return *this;
 	}
 	
 	
