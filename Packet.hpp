@@ -22,20 +22,20 @@
 # if __BYTE_ORDER == __BIG_ENDIAN
 // The host byte order is the same as network byte order,
 // so these functions are all just identity.
-#  define ntohl(x)   (x)
-#  define ntohll(x)  (x)
-#  define ntohs(x)   (x)
-#  define htonl(x)   (x)
-#  define htonll(x)  (x)
-#  define htons(x)   (x)
+#  define PACKET_ntohl(x)   (x)
+#  define PACKET_ntohll(x)  (x)
+#  define PACKET_ntohs(x)   (x)
+#  define PACKET_htonl(x)   (x)
+#  define PACKET_htonll(x)  (x)
+#  define PACKET_htons(x)   (x)
 # else
 #  if __BYTE_ORDER == __LITTLE_ENDIAN
-#   define ntohll(x) __bswap_64 (x)
-#   define ntohl(x)  __bswap_32 (x)
-#   define ntohs(x)  __bswap_16 (x)
-#   define htonll(x) __bswap_64 (x)
-#   define htonl(x)  __bswap_32 (x)
-#   define htons(x)  __bswap_16 (x)
+#   define PACKET_ntohll(x) __bswap_64 (x)
+#   define PACKET_ntohl(x)  __bswap_32 (x)
+#   define PACKET_ntohs(x)  __bswap_16 (x)
+#   define PACKET_htonll(x) __bswap_64 (x)
+#   define PACKET_htonl(x)  __bswap_32 (x)
+#   define PACKET_htons(x)  __bswap_16 (x)
 #  endif
 # endif
 
@@ -266,7 +266,7 @@ Packet & Packet::operator >>(int16_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohs(*reinterpret_cast<__packed const int16_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohs(*reinterpret_cast<__packed const int16_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
@@ -278,7 +278,7 @@ Packet & Packet::operator >>(uint16_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohs(*reinterpret_cast<__packed const uint16_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohs(*reinterpret_cast<__packed const uint16_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
@@ -290,7 +290,7 @@ Packet & Packet::operator >>(int32_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohl(*reinterpret_cast<__packed const int32_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohl(*reinterpret_cast<__packed const int32_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
@@ -302,21 +302,21 @@ Packet & Packet::operator >>(uint32_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohl(*reinterpret_cast<__packed const uint32_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohl(*reinterpret_cast<__packed const uint32_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
 	return *this;
 }
 
-#if defined(ntohll)
+#if defined(PACKET_ntohll)
 
 inline
 Packet & Packet::operator >>(int64_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohll(*reinterpret_cast<__packed const int64_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohll(*reinterpret_cast<__packed const int64_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
@@ -328,7 +328,7 @@ Packet & Packet::operator >>(uint64_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = ntohll(*reinterpret_cast<__packed const uint64_t *>(&m_data[m_readPos]));
+		data = PACKET_ntohll(*reinterpret_cast<__packed const uint64_t *>(&m_data[m_readPos]));
 		m_readPos += sizeof(data);
 	}
 
@@ -342,7 +342,7 @@ Packet & Packet::operator >>(int64_t& data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		// Since ntohll is not available everywhere, we have to convert
+		// Since PACKET_ntohll is not available everywhere, we have to convert
 		// to network byte order (big endian) manually
 		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
 		data = (static_cast<int64_t>(bytes[0]) << 56) |
@@ -364,7 +364,7 @@ Packet & Packet::operator >>(uint64_t& data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		// Since ntohll is not available everywhere, we have to convert
+		// Since PACKET_ntohll is not available everywhere, we have to convert
 		// to network byte order (big endian) manually
 		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
 		data = (static_cast<uint64_t>(bytes[0]) << 56) |
@@ -510,7 +510,7 @@ Packet & Packet::operator <<(uint8_t data)
 inline
 Packet & Packet::operator <<(int16_t data)
 {
-	int16_t toWrite = htons(data);
+	int16_t toWrite = PACKET_htons(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
@@ -518,7 +518,7 @@ Packet & Packet::operator <<(int16_t data)
 inline
 Packet & Packet::operator <<(uint16_t data)
 {
-	uint16_t toWrite = htons(data);
+	uint16_t toWrite = PACKET_htons(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
@@ -526,7 +526,7 @@ Packet & Packet::operator <<(uint16_t data)
 inline
 Packet & Packet::operator <<(int32_t data)
 {
-	int32_t toWrite = htonl(data);
+	int32_t toWrite = PACKET_htonl(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
@@ -534,17 +534,17 @@ Packet & Packet::operator <<(int32_t data)
 inline
 Packet & Packet::operator <<(uint32_t data)
 {
-	uint32_t toWrite = htonl(data);
+	uint32_t toWrite = PACKET_htonl(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
 
-#if defined(htonll)
+#if defined(PACKET_htonll)
 
 inline
 Packet & Packet::operator <<(int64_t data)
 {
-	int64_t toWrite = htonll(data);
+	int64_t toWrite = PACKET_htonll(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
@@ -552,7 +552,7 @@ Packet & Packet::operator <<(int64_t data)
 inline
 Packet & Packet::operator <<(uint64_t data)
 {
-	uint64_t toWrite = htonll(data);
+	uint64_t toWrite = PACKET_htonll(data);
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
@@ -562,7 +562,7 @@ inline
 inline
 Packet & Packet::operator <<(int64_t data)
 {
-	// Since htonll is not available everywhere, we have to convert
+	// Since PACKET_htonll is not available everywhere, we have to convert
 	// to network byte order (big endian) manually
 	uint8_t toWrite[] =
 	{
@@ -582,7 +582,7 @@ Packet & Packet::operator <<(int64_t data)
 inline
 Packet & Packet::operator <<(uint64_t data)
 {
-	// Since htonll is not available everywhere, we have to convert
+	// Since PACKET_htonll is not available everywhere, we have to convert
 	// to network byte order (big endian) manually
 	uint8_t toWrite[] =
 	{
