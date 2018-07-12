@@ -46,7 +46,7 @@
 namespace PACKET_NS {
 #endif
 
-class alignas(16) Packet final
+class /*alignas(16)*/ Packet final
 {
 	// A bool-like type that cannot be converted to integer or pointer types
 	typedef bool(Packet::*BoolType)(size_t);
