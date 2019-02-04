@@ -7,13 +7,17 @@
 #include <memory>
 #include <cstring>
 
-#if defined(__linux__)
-#	include <endian.h>
-#	define __packed
+#if defined __linux__
+	#include <endian.h>
+	#define __packed
 #endif
 
-#ifdef _MSC_VER
-#	define __packed
+#if defined _MSC_VER
+	#define __packed
+#endif
+
+#if defined __EMSCRIPTEN__
+	#define __packed
 #endif
 
 // We can optimize calls to the conversion functions.  Either nothing has
@@ -30,12 +34,12 @@
 #  define PACKET_htons(x)   (x)
 # else
 #  if __BYTE_ORDER == __LITTLE_ENDIAN
-#   define PACKET_ntohll(x) __bswap_64 (x)
-#   define PACKET_ntohl(x)  __bswap_32 (x)
-#   define PACKET_ntohs(x)  __bswap_16 (x)
-#   define PACKET_htonll(x) __bswap_64 (x)
-#   define PACKET_htonl(x)  __bswap_32 (x)
-#   define PACKET_htons(x)  __bswap_16 (x)
+#   define PACKET_ntohll(x) __bswap64 (x)
+#   define PACKET_ntohl(x)  __bswap32 (x)
+#   define PACKET_ntohs(x)  __bswap16 (x)
+#   define PACKET_htonll(x) __bswap64 (x)
+#   define PACKET_htonl(x)  __bswap32 (x)
+#   define PACKET_htons(x)  __bswap16 (x)
 #  endif
 # endif
 
