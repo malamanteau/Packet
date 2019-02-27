@@ -7,41 +7,33 @@
 #include <memory>
 #include <cstring>
 
-#if defined __linux__
-	#include <endian.h>
+#include "../../../HandyCpp/Handy.hpp"
+
+/// ARM microcontrollers, you need to define PACKET_USE_PACKED_KEYWORD
+
+#if !defined PACKET_USE_PACKED_KEYWORD
 	#define __packed
 #endif
 
-#if defined _MSC_VER
-	#define __packed
+// We can optimize calls to the conversion functions.  Either nothing has to be done or we 
+// are using directly the byte-swapping functions which often can be inlined.
+#if defined IS_LITTLE_ENDIAN
+	#define PACKET_ntohl(x)   (x)
+	#define PACKET_ntohll(x)  (x)
+	#define PACKET_ntohs(x)   (x)
+	#define PACKET_htonl(x)   (x)
+	#define PACKET_htonll(x)  (x)
+	#define PACKET_htons(x)   (x)
+#elif defined IS_BIG_ENDIAN
+	#define PACKET_ntohll(x) __bswap64 (x)
+	#define PACKET_ntohl(x)  __bswap32 (x)
+	#define PACKET_ntohs(x)  __bswap16 (x)
+	#define PACKET_htonll(x) __bswap64 (x)
+	#define PACKET_htonl(x)  __bswap32 (x)
+	#define PACKET_htons(x)  __bswap16 (x)
+#else
+	#error "Packet: Couldn't detect endianness."
 #endif
-
-#if defined __EMSCRIPTEN__
-	#define __packed
-#endif
-
-// We can optimize calls to the conversion functions.  Either nothing has
-// to be done or we are using directly the byte-swapping functions which
-// often can be inlined.
-# if __BYTE_ORDER == __BIG_ENDIAN
-// The host byte order is the same as network byte order,
-// so these functions are all just identity.
-#  define PACKET_ntohl(x)   (x)
-#  define PACKET_ntohll(x)  (x)
-#  define PACKET_ntohs(x)   (x)
-#  define PACKET_htonl(x)   (x)
-#  define PACKET_htonll(x)  (x)
-#  define PACKET_htons(x)   (x)
-# else
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
-#   define PACKET_ntohll(x) __bswap64 (x)
-#   define PACKET_ntohl(x)  __bswap32 (x)
-#   define PACKET_ntohs(x)  __bswap16 (x)
-#   define PACKET_htonll(x) __bswap64 (x)
-#   define PACKET_htonl(x)  __bswap32 (x)
-#   define PACKET_htons(x)  __bswap16 (x)
-#  endif
-# endif
 
 /// If you would like the functions/classes in Packet 
 /// to be in a namespace, just define PACKET_NS 
@@ -50,10 +42,20 @@
 namespace PACKET_NS {
 #endif
 
+
+
 class /*alignas(16)*/ Packet final
 {
 	// A bool-like type that cannot be converted to integer or pointer types
 	typedef bool(Packet::*BoolType)(size_t);
+
+	static constexpr bool UnalignedAllowed =
+		#if defined UNALIGNED_ACCESS_ALLOWED || defined PACKET_USE_PACKED_KEYWORD
+			true;
+		#else
+			false;
+		#endif
+
 
 public:
 	Packet(); // Creates an empty packet.
@@ -270,7 +272,20 @@ Packet & Packet::operator >>(int16_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohs(*reinterpret_cast<__packed const int16_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohs(data);
 		m_readPos += sizeof(data);
 	}
 
@@ -282,7 +297,20 @@ Packet & Packet::operator >>(uint16_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohs(*reinterpret_cast<__packed const uint16_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohs(data);
 		m_readPos += sizeof(data);
 	}
 
@@ -294,7 +322,20 @@ Packet & Packet::operator >>(int32_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohl(*reinterpret_cast<__packed const int32_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohl(data);
 		m_readPos += sizeof(data);
 	}
 
@@ -306,21 +347,45 @@ Packet & Packet::operator >>(uint32_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohl(*reinterpret_cast<__packed const uint32_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohl(data);
 		m_readPos += sizeof(data);
 	}
 
 	return *this;
 }
 
-#if defined(PACKET_ntohll)
-
 inline
 Packet & Packet::operator >>(int64_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohll(*reinterpret_cast<__packed const int64_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohll(data);
 		m_readPos += sizeof(data);
 	}
 
@@ -332,60 +397,26 @@ Packet & Packet::operator >>(uint64_t & data)
 {
 	if (checkSize(sizeof(data)))
 	{
-		data = PACKET_ntohll(*reinterpret_cast<__packed const uint64_t *>(&m_data[m_readPos]));
+		if constexpr (UnalignedAllowed)
+		{
+			data = *reinterpret_cast<__packed const std::remove_reference_t<decltype(data)> *>(&m_data[m_readPos]);
+		}
+		else
+		{
+			uint8_t const * bytes  = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+			uint8_t       * target = reinterpret_cast<__packed       uint8_t *>(&data);
+
+			for (int i = 0; i < sizeof(data); i++)
+				target[i] = bytes[i];
+		}
+
+		data = PACKET_ntohll(data);
 		m_readPos += sizeof(data);
 	}
 
 	return *this;
 }
 
-#else
-
-inline
-Packet & Packet::operator >>(int64_t& data)
-{
-	if (checkSize(sizeof(data)))
-	{
-		// Since PACKET_ntohll is not available everywhere, we have to convert
-		// to network byte order (big endian) manually
-		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
-		data = (static_cast<int64_t>(bytes[0]) << 56) |
-			   (static_cast<int64_t>(bytes[1]) << 48) |
-			   (static_cast<int64_t>(bytes[2]) << 40) |
-			   (static_cast<int64_t>(bytes[3]) << 32) |
-			   (static_cast<int64_t>(bytes[4]) << 24) |
-			   (static_cast<int64_t>(bytes[5]) << 16) |
-			   (static_cast<int64_t>(bytes[6]) <<  8) |
-			   (static_cast<int64_t>(bytes[7]));
-		m_readPos += sizeof(data);
-	}
-
-	return *this;
-}
-
-inline
-Packet & Packet::operator >>(uint64_t& data)
-{
-	if (checkSize(sizeof(data)))
-	{
-		// Since PACKET_ntohll is not available everywhere, we have to convert
-		// to network byte order (big endian) manually
-		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
-		data = (static_cast<uint64_t>(bytes[0]) << 56) |
-			   (static_cast<uint64_t>(bytes[1]) << 48) |
-			   (static_cast<uint64_t>(bytes[2]) << 40) |
-			   (static_cast<uint64_t>(bytes[3]) << 32) |
-			   (static_cast<uint64_t>(bytes[4]) << 24) |
-			   (static_cast<uint64_t>(bytes[5]) << 16) |
-			   (static_cast<uint64_t>(bytes[6]) <<  8) |
-			   (static_cast<uint64_t>(bytes[7]));
-		m_readPos += sizeof(data);
-	}
-
-	return *this;
-}
-
-#endif
 
 inline
 Packet & Packet::operator >>(float & data)
@@ -543,7 +574,6 @@ Packet & Packet::operator <<(uint32_t data)
 	return *this;
 }
 
-#if defined(PACKET_htonll)
 
 inline
 Packet & Packet::operator <<(int64_t data)
@@ -560,50 +590,6 @@ Packet & Packet::operator <<(uint64_t data)
 	Append(&toWrite, sizeof(toWrite));
 	return *this;
 }
-
-#else
-inline
-inline
-Packet & Packet::operator <<(int64_t data)
-{
-	// Since PACKET_htonll is not available everywhere, we have to convert
-	// to network byte order (big endian) manually
-	uint8_t toWrite[] =
-	{
-		static_cast<uint8_t>((data >> 56) & 0xFF),
-		static_cast<uint8_t>((data >> 48) & 0xFF),
-		static_cast<uint8_t>((data >> 40) & 0xFF),
-		static_cast<uint8_t>((data >> 32) & 0xFF),
-		static_cast<uint8_t>((data >> 24) & 0xFF),
-		static_cast<uint8_t>((data >> 16) & 0xFF),
-		static_cast<uint8_t>((data >>  8) & 0xFF),
-		static_cast<uint8_t>((data) & 0xFF)
-	};
-	append(&toWrite, sizeof(toWrite));
-	return *this;
-}
-
-inline
-Packet & Packet::operator <<(uint64_t data)
-{
-	// Since PACKET_htonll is not available everywhere, we have to convert
-	// to network byte order (big endian) manually
-	uint8_t toWrite[] =
-	{
-		static_cast<uint8_t>((data >> 56) & 0xFF),
-		static_cast<uint8_t>((data >> 48) & 0xFF),
-		static_cast<uint8_t>((data >> 40) & 0xFF),
-		static_cast<uint8_t>((data >> 32) & 0xFF),
-		static_cast<uint8_t>((data >> 24) & 0xFF),
-		static_cast<uint8_t>((data >> 16) & 0xFF),
-		static_cast<uint8_t>((data >>  8) & 0xFF),
-		static_cast<uint8_t>((data) & 0xFF)
-	};
-	append(&toWrite, sizeof(toWrite));
-	return *this;
-}
-
-#endif
 
 inline
 Packet & Packet::operator <<(float data)
@@ -700,3 +686,88 @@ void Packet::Reserve(uint32_t size)
 #ifdef PACKET_NS
 }
 #endif
+
+/// I need to use these to make an implementation of the 64-bit bswap() operations, since some microcontrollers have no implementation.
+//inline
+//Packet & Packet::operator >>(int64_t& data)
+//{
+//	if (checkSize(sizeof(data)))
+//	{
+//		// Since PACKET_ntohll is not available everywhere, we have to convert
+//		// to network byte order (big endian) manually
+//		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+//		data = (static_cast<int64_t>(bytes[0]) << 56) |
+//			(static_cast<int64_t>(bytes[1]) << 48) |
+//			(static_cast<int64_t>(bytes[2]) << 40) |
+//			(static_cast<int64_t>(bytes[3]) << 32) |
+//			(static_cast<int64_t>(bytes[4]) << 24) |
+//			(static_cast<int64_t>(bytes[5]) << 16) |
+//			(static_cast<int64_t>(bytes[6]) <<  8) |
+//			(static_cast<int64_t>(bytes[7]));
+//		m_readPos += sizeof(data);
+//	}
+//
+//	return *this;
+//}
+//
+//inline
+//Packet & Packet::operator >>(uint64_t& data)
+//{
+//	if (checkSize(sizeof(data)))
+//	{
+//		// Since PACKET_ntohll is not available everywhere, we have to convert
+//		// to network byte order (big endian) manually
+//		const uint8_t* bytes = reinterpret_cast<__packed const uint8_t *>(&m_data[m_readPos]);
+//		data = (static_cast<uint64_t>(bytes[0]) << 56) |
+//			(static_cast<uint64_t>(bytes[1]) << 48) |
+//			(static_cast<uint64_t>(bytes[2]) << 40) |
+//			(static_cast<uint64_t>(bytes[3]) << 32) |
+//			(static_cast<uint64_t>(bytes[4]) << 24) |
+//			(static_cast<uint64_t>(bytes[5]) << 16) |
+//			(static_cast<uint64_t>(bytes[6]) <<  8) |
+//			(static_cast<uint64_t>(bytes[7]));
+//		m_readPos += sizeof(data);
+//	}
+//
+//	return *this;
+//}
+//
+//inline
+//Packet & Packet::operator <<(int64_t data)
+//{
+//	// Since PACKET_htonll is not available everywhere, we have to convert
+//	// to network byte order (big endian) manually
+//	uint8_t toWrite[] =
+//	{
+//		static_cast<uint8_t>((data >> 56) & 0xFF),
+//		static_cast<uint8_t>((data >> 48) & 0xFF),
+//		static_cast<uint8_t>((data >> 40) & 0xFF),
+//		static_cast<uint8_t>((data >> 32) & 0xFF),
+//		static_cast<uint8_t>((data >> 24) & 0xFF),
+//		static_cast<uint8_t>((data >> 16) & 0xFF),
+//		static_cast<uint8_t>((data >>  8) & 0xFF),
+//		static_cast<uint8_t>((data) & 0xFF)
+//	};
+//	append(&toWrite, sizeof(toWrite));
+//	return *this;
+//}
+//
+//inline
+//Packet & Packet::operator <<(uint64_t data)
+//{
+//	// Since PACKET_htonll is not available everywhere, we have to convert
+//	// to network byte order (big endian) manually
+//	uint8_t toWrite[] =
+//	{
+//		static_cast<uint8_t>((data >> 56) & 0xFF),
+//		static_cast<uint8_t>((data >> 48) & 0xFF),
+//		static_cast<uint8_t>((data >> 40) & 0xFF),
+//		static_cast<uint8_t>((data >> 32) & 0xFF),
+//		static_cast<uint8_t>((data >> 24) & 0xFF),
+//		static_cast<uint8_t>((data >> 16) & 0xFF),
+//		static_cast<uint8_t>((data >>  8) & 0xFF),
+//		static_cast<uint8_t>((data) & 0xFF)
+//	};
+//	append(&toWrite, sizeof(toWrite));
+//	return *this;
+//}
